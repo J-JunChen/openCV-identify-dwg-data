@@ -51,8 +51,9 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.image_label.setPixmap(
             pixmap.scaled(self.image_label.size(),
                           QtCore.Qt.KeepAspectRatio))  #radio：根据图像比例显示图片
-        # self.image_label.setScaledContents(True) # 让图片自适应label大小,但不按图像比例
-
+        # self.image_label.setScaledC
+    
+    
     
 
 if __name__ == '__main__':

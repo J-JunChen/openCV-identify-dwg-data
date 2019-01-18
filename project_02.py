@@ -41,24 +41,57 @@ def max_area_object_measure(image):
     cv.imwrite('./max_area_object_measure.jpg', image)
 
 
-def remove_frame(image):
-    """  
-        消除数字和外围框架
-    """
-    copyImage = image.copy()
-    h, w = image.shape[:2]
-    mask = np.zeros([h + 2, w + 2], np.uint8)
-    cv.floodFill(copyImage, mask, (30, 30), (0, 255, 255), (100, 100, 100),
-                 (50, 50, 50), cv.FLOODFILL_FIXED_RANGE)
+# def inside_contour(image):
 
-    cv.imwrite("remove_frame.jpg", copyImage)
+
+def cut_picture_roi(image):
+    """ 
+        裁剪图片的roi：
+            选择外围的轮廓进行裁剪
+    """
+    cnt = findContours(image)  # 返回轮廓
+    leftmost = tuple(cnt[cnt[:, :, 0].argmin()][0])
+    rightmost = tuple(cnt[cnt[:, :, 0].argmax()][0])
+    topmost = tuple(cnt[cnt[:, :, 1].argmin()][0])
+    bottommost = tuple(cnt[cnt[:, :, 1].argmax()][0])
+
+    # cv.circle(image, leftmost, 5, (0, 255, 0), 3)
+    # cv.circle(image, rightmost, 5, (0, 0, 255), 3)
+    # cv.circle(image, topmost, 5, (0, 0, 255), 3)
+    # cv.circle(image, bottommost, 5, (0, 255, 0), 3)
+
+    x1 = min(leftmost[1], rightmost[1], topmost[1], bottommost[1])
+    x2 = max(leftmost[1], rightmost[1], topmost[1], bottommost[1])
+
+    y1 = min(leftmost[0], rightmost[0], topmost[0], bottommost[0])
+    y2 = max(leftmost[0], rightmost[0], topmost[0], bottommost[0])
+
+    roi = image[x1:x2, y1:y2]  #roi区域
+    cv.imwrite("cut.jpg", roi)
+    # cv.imshow("roi", image)
+
+
+def findContours(image):
+    gray = big_image_binary(image)
+    ret, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
+    # cv.imshow("binary", binary)
+
+    cloneimage, contours, hierarchy = cv.findContours(binary, cv.RETR_EXTERNAL,
+                                                      cv.CHAIN_APPROX_SIMPLE)
+
+    # for i, contour in enumerate(contours):
+    # cv.drawContours(image, contours, i, [0, 0, 255], 2)
+
+    # cv.imwrite("./Detect_Contours.jpg", image)
+    return contours[0]  #返回外轮廓
 
 
 src = cv.imread("./cad3.jpg")
 # cv.namedWindow("CAD", cv.WINDOW_AUTOSIZE)
 # cv.imshow("CAD", src)
-max_area_object_measure(src)
-# remove_frame(src)
+# max_area_object_measure(src)
+cut_picture_roi(src)
+# findContours(src)
 
 cv.waitKey(0)
 cv.destroyAllWindows()
