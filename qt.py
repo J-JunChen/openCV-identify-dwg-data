@@ -29,7 +29,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self,
             "选择CAD文件",
             "",
-            "JPG Files (*.jpg);;CAD Files (*.dwg)",
+            "JPG Files (*.jpg);;PDF Files (*.pdf)",
             options=options)
         if fileRoad:
             fileName = os.path.split(fileRoad)[1]  #分离文件名
