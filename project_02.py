@@ -49,7 +49,7 @@ def cut_picture_roi(image):
         裁剪图片的roi：
             选择外围的轮廓进行裁剪
     """
-    cnt = findContours(image)  # 返回轮廓
+    cnt = max_roi(image)  # 返回轮廓
 
     # leftmost = tuple(cnt[cnt[:, :, 0].argmin()][0])
     # rightmost = tuple(cnt[cnt[:, :, 0].argmax()][0])
@@ -75,8 +75,18 @@ def cut_picture_roi(image):
 
     # cv.imshow("roi", image)
 
+def max_roi(image):
+    gray = big_image_binary(image)
+    dst = cv.cvtColor(gray, cv.COLOR_GRAY2BGR)
+    ret, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
 
-def findContours(image):
+    cloneimage, contours, hierarchy = cv.findContours(binary, cv.RETR_TREE,
+                                                      cv.CHAIN_APPROX_SIMPLE)
+
+    return contours[0]                                                  
+
+
+def find_contours(image):
     gray = big_image_binary(image)
     dst = cv.cvtColor(gray, cv.COLOR_GRAY2BGR)
     ret, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
@@ -99,10 +109,9 @@ def findContours(image):
     contour_area = []
     for contour in contours:
         contour_area.append(cv.contourArea(contour))
-    
     contour_area = quick_sort(contour_area)
 
-    room_contour = [] #用户指定房间的
+    room_contours = []  # 用户指定房间的
 
     for component in zip(contours, hierarchy):
         currentContour = component[0]
@@ -112,18 +121,29 @@ def findContours(image):
             # these are the innermost child components
             # cv.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-            for i in range(1, int(room_num)+1): # 因为最大的区域就是整一张图纸
-                if cv.contourArea(currentContour) == contour_area[i] :
+            for i in range(1, int(room_num)+1):  # 因为最大的区域就是整一张图纸
+                if cv.contourArea(currentContour) == contour_area[i]:
                     print("area：%s" % cv.contourArea(currentContour))
-                    cv.drawContours(dst, [currentContour], 0, (0, 0, 255), -1)
-                    room_contour.append(currentContour)
+                    cv.drawContours(dst, [currentContour],
+                                    0, (214, 238, 247), -1)
+                    room_contours.append(currentContour)
 
         elif currentHierarchy[3] < 0:
             # these are the outermost parent components
-            cv.rectangle(dst, (x, y), (x + w, y + h), (255, 0, 0), 1)
+            cv.rectangle(dst, (x, y), (x + w, y + h), (0, 0, 0), 1)
 
     cv.imwrite("./Detect_Contours.jpg", dst)
-    return contours[0]  # 返回外轮廓
+
+    """  抽取其中一个房间标出其中一条边，两个点 """
+    # x0, y0, w0, h0 = cv.boundingRect(room_contours[0])
+    # cv.circle(dst, (x0, y0), 5, (0, 0, 255), 4)
+    # cv.circle(dst, (x0+w0, y0), 5, (0, 0, 255), 4)
+    # cv.line(dst, (x0, y0), (x0+w0, y0), (0, 0, 255), 3)
+    # height, width = map(float, input("请分别输入标定房间的实际高度， 宽度：").split(','))
+    # print("高度为：%d" % height + ", 宽度：%d" % width)
+
+    save_contours(dst, room_contours)
+    
 
 
 def quick_sort(array):
@@ -149,12 +169,47 @@ def quick_sort(array):
         return array
 
 
-src = cv.imread("./cut.jpg")
+def save_contours(img, contours):
+    shape = img.shape
+    height = shape[0]  # 高度
+    width = shape[1]  # 宽度
+
+    num = 0
+    for contour in contours:
+        
+        cv.drawContours(img, [contour],
+                        0, (0, 238, 247), -1)
+        for i in range(0,  height):
+            for j in range(0, width):
+                if cv.pointPolygonTest(contour, (j, i), False) < 0:
+                    img[i, j] = [0, 0, 0]
+
+        x, y, w, h = cv.boundingRect(contour)
+        print("width：%d" % w + ", height : %d" % h)
+        cv.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+
+        """ 画坐标系 """
+        cv.circle(img, (x, y+h), 5, (0, 0, 255), 4)
+        cv.arrowedLine(img, (x, y+h), (x , y+h-100), (255, 0, 0),3)
+        cv.arrowedLine(img, (x, y+h), (x+100 , y+h), (255, 0, 0),3)
+
+     
+        cv.imwrite("save_contour_" + str(num) + ".jpg", img[y:y+h, x:x+w])
+        num += 1
+
+def rotate_picture(img):
+    """ 旋转图片 """
+    print("左转还是右转? R/L")
+
+# src = cv.imread("./cut.jpg")
 # cv.namedWindow("CAD", cv.WINDOW_AUTOSIZE)
 # cv.imshow("CAD", src)
 # max_area_object_measure(src)
 # cut_picture_roi(src)
-findContours(src)
+# find_contours(src)
+
+src = cv.imread('./save_contour.jpg')
+rotate_picture(src)
 
 
 cv.waitKey(0)
