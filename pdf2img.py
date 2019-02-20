@@ -16,5 +16,5 @@ def pdf2img(pdf_name):
 
 
 if __name__ == "__main__":
-    pdf_name = './cad2.pdf'  #导进去的pdf
+    pdf_name = './cad3.pdf'  #导进去的pdf
     pdf2img(pdf_name)
