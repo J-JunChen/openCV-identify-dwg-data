@@ -20,7 +20,7 @@
       <x>1120</x>
       <y>190</y>
       <width>261</width>
-      <height>41</height>
+      <height>56</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="area_horizontalLayout">
@@ -52,8 +52,8 @@
      <rect>
       <x>1110</x>
       <y>90</y>
-      <width>281</width>
-      <height>31</height>
+      <width>306</width>
+      <height>72</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="brick_horizontalLayout">
@@ -119,72 +119,6 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="horizontalLayoutWidget_5">
-    <property name="geometry">
-     <rect>
-      <x>1090</x>
-      <y>330</y>
-      <width>291</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="pattern_horizontalLayout">
-     <item>
-      <widget class="QLabel" name="brick_label_3">
-       <property name="font">
-        <font>
-         <pointsize>17</pointsize>
-        </font>
-       </property>
-       <property name="mouseTracking">
-        <bool>false</bool>
-       </property>
-       <property name="autoFillBackground">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string>摆放方式</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QRadioButton" name="radioButton_2">
-         <property name="text">
-          <string>上</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="radioButton">
-         <property name="text">
-          <string>下</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
-       <item>
-        <widget class="QRadioButton" name="radioButton_3">
-         <property name="text">
-          <string>左</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="radioButton_4">
-         <property name="text">
-          <string>右</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </widget>
    <widget class="QPushButton" name="choose_pushButton">
     <property name="geometry">
      <rect>
@@ -242,9 +176,9 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>10</y>
-      <width>1031</width>
-      <height>711</height>
+      <y>460</y>
+      <width>271</width>
+      <height>261</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
@@ -263,6 +197,13 @@
      </item>
     </layout>
    </widget>
+   <zorder>horizontalLayoutWidget</zorder>
+   <zorder>horizontalLayoutWidget_2</zorder>
+   <zorder>choose_pushButton</zorder>
+   <zorder>cad_label</zorder>
+   <zorder>brick_label</zorder>
+   <zorder>gridLayoutWidget</zorder>
+   <zorder>image_label</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -270,7 +211,7 @@
      <x>0</x>
      <y>0</y>
      <width>1417</width>
-     <height>28</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>

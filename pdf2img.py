@@ -15,6 +15,7 @@ def pdf2img(pdf_name):
     page.save(filename=shotname+ ".jpg")
 
 
+
 if __name__ == "__main__":
     pdf_name = './cad3.pdf'  #导进去的pdf
     pdf2img(pdf_name)

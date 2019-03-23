@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
-from matplotlib import pyplot as plt
 import json
+import math
 
 
 def big_image_binary(image):
@@ -105,6 +105,7 @@ def find_contours(image):
 
     # for i, contour in enumerate(contours):
     #     cv.drawContours(image, contours, i, [0, 0, 255], 2)
+    # cv.imwrite("./image.jpg", image)
 
     room_num = input("请用户输入多少个房间：")
 
@@ -212,20 +213,7 @@ def rotate_picture(img):
 
 
 def line_detect(img):
-    # gray = big_image_binary(img)
-
-    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    ret, binary = cv.threshold(
-        gray, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)
-    # ret, binary = cv.threshold(gray, 127, 255, cv.THRESH_BINARY_INV)
-
-    cv.imwrite("./灰度.jpg", gray)
-    cv.imwrite("./二指化.jpg", binary)
-
-    # open_function(binary)
-
-    edge = cv.Canny(binary, 50, 100, apertureSize=3)
-    # edge = cv.Canny(gray, 50, 100, apertureSize=3)
+    edge = canny_edge_function(img)
 
     '''
         cv.HoughLinesP（常用）:返回准确位置的起始点和终止点，一个一个细小的线段，
@@ -261,30 +249,51 @@ def line_detect(img):
     cv.imwrite("./直线检测.jpg", img)
 
 
-def embed_in_matplotlib(img):
-    """ 将图片嵌入matplotlib """
-    plt.xlim(0, 7290)
-    plt.ylim(0, 9360)
-    plt.imshow(img)
-    plt.show()
+def canny_edge_function(image):
+    '''
+        Canny边缘提取算法：
+            1、进行高斯模糊：因为Canny对噪声比较敏感，所以先高斯模糊降噪
+            2、灰度转移：转化为单通道
+            3、计算梯度：Sobel/Scharr
+            4、
+            5、高低阈值输出二值图像
+    '''
+    blurred = cv.GaussianBlur(image, (3, 3), 0)
+    gray = cv.cvtColor(blurred, cv.COLOR_BGR2GRAY)
+
+    grad_x = cv.Sobel(gray, cv.CV_16SC1, 1, 0)
+    grad_y = cv.Sobel(gray, cv.CV_16SC1, 0, 1)
+
+    # 低阈值：50；高阈值：150
+    edge_output = cv.Canny(grad_x, grad_y, 50, 150)
+    cv.imshow("Binary", edge_output)
+    return edge_output
 
 
 def point_detection(img):
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    binary = canny_edge_function(img)
+    cloneImage, contours, hierachy = cv.findContours(
+        binary, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    for i, contour in enumerate(contours):
+        cv.drawContours(img, contours, i, (0, 255, 0), 1)
+        print(i)
+    cv.imshow("Detect_contours", img)
+
     gray = np.float32(gray)
     dst = cv.cornerHarris(gray, 2, 3, 0.04)
 
     dst = cv.dilate(dst, None)
     img[dst > 0.01*dst.max()] = [0, 0, 255]
-    # cv.imshow("角点检测", img)
+    cv.imshow("角点检测", img)
 
     height, width = img.shape[:2]
 
     num = 0
-    # points ={}
     points = []
 
-    for row in range(0,  height, 4):
+    for row in range(height-1,  -1, -4):
         for col in range(0, width, 4):
             # print("BGR：", img[j, i][0])
             pixel = img[row, col]
@@ -292,24 +301,94 @@ def point_detection(img):
                 # img[i, j] = [0, 0, 0]
                 cv.circle(img, (col, row), 5, (0, 255, 0), 5)
                 cv.imwrite("./点图" + str(num) + '.jpg', img)
-                print("col：%d" % col + "，row：%d" % row)
-                points.append({"col": col, "row": row})
+                print("row_%d" % num + "：%d" %
+                      row + ", col_%d " % num + "：%d" % col)
+                # points.append({"row": row, "col": col})
+                points.append([np.abs(height - row) , col])
                 num += 1
-    
-    estimate_rectangle(points)
+
+    points = np.asarray(points) # 将 list 转换成 array
+    print(points)
+    estimate_rectangle(points, num)
 
 
-# def clockwise_sort(img):
-#     """ 顶点顺时针排序 """
-
-def estimate_rectangle(points):
+def estimate_rectangle(points, pnum):
     """ 根据四个点的坐标，判断是否矩形 """
-    if len(points) == 4 and points[0]["col"] == points[2]['col'] and points[0]['row'] == points[1]['row'] and points[1]['col'] == points[3]['col']:
+    if pnum == 4 and points[0]["col"] == points[2]['col'] and points[0]['row'] == points[1]['row'] and points[1]['col'] == points[3]['col']:
         print("是矩形")
         print("请输入长和宽")
     else:
         print("不是矩形")
         print("请从坐标原点开始，顺时针输入各个点的坐标")
+    adjacency_matrix(points, pnum)
+
+
+def adjacency_matrix(points, pnum):
+    """ 邻接矩阵 """
+    adjacency = np.zeros((pnum, pnum), dtype=np.int8)  # 邻接矩阵
+    print(adjacency)
+
+    """ 判断角点之间是否相连 """
+    # for i in range(pnum):
+    #     for j in range(i+1, pnum):
+
+    # 下面就先假设邻接矩阵已经完成
+    adjacency[0, 1] = adjacency[0, 6] = adjacency[1, 0] = adjacency[6, 0] = 1
+    adjacency[1, 2] = adjacency[2, 1] = 1
+    adjacency[2, 3] = adjacency[3, 2] = 1
+    adjacency[3, 4] = adjacency[4, 3] = 1
+    adjacency[4, 5] = adjacency[5, 4] = 1
+    adjacency[5, 7] = adjacency[7, 5] = 1
+    adjacency[6, 7] = adjacency[7, 6] = 1
+    print(adjacency)
+
+    clockwise = [0] # 顺时针排序后的点，第一点为第0点
+    one_array = np.where(adjacency[0] == 1)[0]
+    print(one_array)
+    
+   # print(angle3pt(points[one_array[0]], points[0], points[one_array[1]]))
+
+    sort_clockwise(adjacency, points, one_array, 0 , clockwise, pnum) # 第0行开始
+    print(clockwise)
+
+def sort_clockwise(adjacency, points, one_array, i, clockwise, pnum):
+    """ 
+    递归：
+        角点顺时针排序算法，基于邻接矩阵的遍历算法:
+        1、第一步，先找出与第0点的两个点（即第1点和第6点），哪个是顺时针最先连接的。
+        2、第二步：找到顺时针遍历的第二个点之后（即第6点），就根据邻接矩阵的遍历算法对接下来的角点进行排序
+        3、第三步：判断修改后的邻接矩阵每行中，如果“1”的个数为2，则回到第二步，否则为“1”就是顺时针的下一个点
+    """
+    k = 0
+    # 第三步：判断遍历行”1“的个数，如果只有每行中少于2点为“1”的，即该行的下一个连接点就是列中为“1”的点
+    if len(clockwise) == pnum: 
+        return # 递归结束条件
+    elif len(one_array) == 1: 
+        k = one_array[0]
+    else: # 除非就有两个点，则执行第一步
+        if angle3pt(points[one_array[0]], points[i], points[one_array[1]]) >=0 :
+            """ 如果两个向量之间的角度大于0，即one_array[0]为顺时针的第一个点 """
+            k = one_array[0]
+        else:
+            k = one_array[1]
+    
+    adjacency[i, k] = adjacency[k, i] = 0
+    clockwise.append(k)
+
+    one_array = np.where(adjacency[k] == 1)[0]
+    sort_clockwise(adjacency, points, one_array, k, clockwise, pnum)
+
+
+def angle3pt(a, b, c):
+    """Counterclockwise angle in degrees by turning from a to c around b
+        Returns a float between 0.0 and 360.0"""
+    ang = math.degrees(
+        math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
+    # return ang + 360 if ang < 0 else ang
+    return ang
+
+
+        
 
 
 # src = cv.imread("./cad3.jpg")
@@ -319,10 +398,9 @@ def estimate_rectangle(points):
 # cut_picture_roi(src)
 # src = cv.imread("./cut.jpg")
 # find_contours(src)
-src = cv.imread('./save_contour_1.jpg')
+src = cv.imread('./左转90度.jpg')
 # rotate_picture(src)
 # line_detect(src)
-# embed_in_matplotlib(src)
 point_detection(src)
 
 
