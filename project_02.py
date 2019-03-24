@@ -225,7 +225,7 @@ def line_detect(img):
             maxLineGap = 10：同一直线上两个线段的间隙距离小于10的话，就把两个线段连接起来，当做一条线段
     '''
     lines = cv.HoughLinesP(edge, rho=1, theta=np.pi/180,
-                           threshold=100, minLineLength=0, maxLineGap=10)
+                           threshold=80, minLineLength=50, maxLineGap=10)
 
     line_len = []
     # copy_img = []
@@ -400,8 +400,8 @@ def angle3pt(a, b, c):
 # find_contours(src)
 src = cv.imread('./左转90度.jpg')
 # rotate_picture(src)
-# line_detect(src)
-point_detection(src)
+line_detect(src)
+# point_detection(src)
 
 
 cv.waitKey(0)
