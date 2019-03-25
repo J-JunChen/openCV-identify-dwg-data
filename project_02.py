@@ -227,8 +227,6 @@ def line_detect(img):
     lines = cv.HoughLinesP(edge, rho=1, theta=np.pi/180,
                            threshold=80, minLineLength=50, maxLineGap=10)
 
-    line_len = []
-    # copy_img = []
     copy_img = np.zeros(img.shape, np.uint8)  # 根据图像的大小来创建一个图像对象
 
     # cv.imshow("emptyImage", copy_img)
@@ -237,16 +235,19 @@ def line_detect(img):
         copy_img = img.copy()
 
         x1, y1, x2, y2 = lines[i][0]
-        cv.line(copy_img, (x1, y1), (x2, y2), (0, 0, 255), 4)
-        cv.imwrite("请输入长度" + str(i)+'.jpg', copy_img)
+        cv.line(copy_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv.imwrite("line_detection" + str(i)+'.jpg', copy_img)
         # l= input("请输入显示边的实际长度：")
         # line_len.append(int(l))
 
+    copy_img = img.copy()
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        cv.line(img, (x1, y1), (x2, y2), (0, 0, 255), 4)
+        cv.line(copy_img, (x1, y1), (x2, y2), (255, 255, 0), 2)
 
-    cv.imwrite("./直线检测.jpg", img)
+    cv.imwrite("./line_detection.jpg", copy_img)
+
+    return lines
 
 
 def canny_edge_function(image):
@@ -278,7 +279,6 @@ def point_detection(img):
         binary, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     for i, contour in enumerate(contours):
         cv.drawContours(img, contours, i, (0, 255, 0), 1)
-        print(i)
     cv.imshow("Detect_contours", img)
 
     gray = np.float32(gray)
@@ -301,15 +301,20 @@ def point_detection(img):
                 # img[i, j] = [0, 0, 0]
                 cv.circle(img, (col, row), 5, (0, 255, 0), 5)
                 cv.imwrite("./点图" + str(num) + '.jpg', img)
-                print("row_%d" % num + "：%d" %
-                      row + ", col_%d " % num + "：%d" % col)
-                # points.append({"row": row, "col": col})
-                points.append([np.abs(height - row) , col])
+
+                # print("row_%d" % num + "：%d" %
+                #       row + ", col_%d " % num + "：%d" % col)
+                # points.append([np.abs(height - row) , col])
+
+                print("col_%d " % num + "：%d" %
+                      col + ", row_%d" % num + "：%d" % row)
+                points.append([col, row])
                 num += 1
 
-    points = np.asarray(points) # 将 list 转换成 array
+    points = np.asarray(points)  # 将 list 转换成 array
     print(points)
     estimate_rectangle(points, num)
+    return points, num
 
 
 def estimate_rectangle(points, pnum):
@@ -319,39 +324,56 @@ def estimate_rectangle(points, pnum):
         print("请输入长和宽")
     else:
         print("不是矩形")
-        print("请从坐标原点开始，顺时针输入各个点的坐标")
-    adjacency_matrix(points, pnum)
+    # create_adjacency_matrix(points, pnum)
 
 
-def adjacency_matrix(points, pnum):
+def create_adjacency_matrix(points, pnum, lines):
     """ 邻接矩阵 """
-    adjacency = np.zeros((pnum, pnum), dtype=np.int8)  # 邻接矩阵
-    print(adjacency)
+    adjacency_matrix = np.zeros((pnum, pnum), dtype=np.int8)  # 邻接矩阵
 
+    contours = create_contours(points, pnum)
+    
+    array = []
+    index = 0
     """ 判断角点之间是否相连 """
-    # for i in range(pnum):
-    #     for j in range(i+1, pnum):
+    # for line in lines:
+    #     for cnt in contours:
+    #         if IsLineInContours(line, cnt):
+    #             array.append(index)
+    #             index +=1
+    # print(array)
+    for line in lines:
+        TheContourContainsLine(line, contours)
 
     # 下面就先假设邻接矩阵已经完成
-    adjacency[0, 1] = adjacency[0, 6] = adjacency[1, 0] = adjacency[6, 0] = 1
-    adjacency[1, 2] = adjacency[2, 1] = 1
-    adjacency[2, 3] = adjacency[3, 2] = 1
-    adjacency[3, 4] = adjacency[4, 3] = 1
-    adjacency[4, 5] = adjacency[5, 4] = 1
-    adjacency[5, 7] = adjacency[7, 5] = 1
-    adjacency[6, 7] = adjacency[7, 6] = 1
-    print(adjacency)
+    adjacency_matrix[0, 1] = adjacency_matrix[0,
+                                              6] = adjacency_matrix[1, 0] = adjacency_matrix[6, 0] = 1
+    adjacency_matrix[1, 2] = adjacency_matrix[2, 1] = 1
+    adjacency_matrix[2, 3] = adjacency_matrix[3, 2] = 1
+    adjacency_matrix[3, 4] = adjacency_matrix[4, 3] = 1
+    adjacency_matrix[4, 5] = adjacency_matrix[5, 4] = 1
+    adjacency_matrix[5, 7] = adjacency_matrix[7, 5] = 1
+    adjacency_matrix[6, 7] = adjacency_matrix[7, 6] = 1
+    print("邻接矩阵：\n", adjacency_matrix)
 
-    clockwise = [0] # 顺时针排序后的点，第一点为第0点
-    one_array = np.where(adjacency[0] == 1)[0]
-    print(one_array)
-    
-   # print(angle3pt(points[one_array[0]], points[0], points[one_array[1]]))
+    return adjacency_matrix
 
-    sort_clockwise(adjacency, points, one_array, 0 , clockwise, pnum) # 第0行开始
-    print(clockwise)
 
-def sort_clockwise(adjacency, points, one_array, i, clockwise, pnum):
+def points_sort(adjacency_matrix, points, pnum):
+    """ 角点排序，按照顺时针规则 """
+    clockwise = [0]  # 顺时针排序后的点，第一点为第0点
+    one_array = np.where(adjacency_matrix[0] == 1)[0]
+    # print(one_array)
+    # print(angle3pt(points[one_array[0]], points[0], points[one_array[1]]))
+
+    sort_clockwise(adjacency_matrix, points, one_array,
+                   0, clockwise, pnum)  # 第0行开始
+    clockwise = np.asarray(clockwise)
+    print("顺时针点排序后：", clockwise)
+    return clockwise
+
+
+def sort_clockwise(adjacency_matrix, points, one_array, i, clockwise, pnum):
     """ 
     递归：
         角点顺时针排序算法，基于邻接矩阵的遍历算法:
@@ -361,22 +383,22 @@ def sort_clockwise(adjacency, points, one_array, i, clockwise, pnum):
     """
     k = 0
     # 第三步：判断遍历行”1“的个数，如果只有每行中少于2点为“1”的，即该行的下一个连接点就是列中为“1”的点
-    if len(clockwise) == pnum: 
-        return # 递归结束条件
-    elif len(one_array) == 1: 
+    if len(clockwise) == pnum:
+        return  # 递归结束条件
+    elif len(one_array) == 1:
         k = one_array[0]
-    else: # 除非就有两个点，则执行第一步
-        if angle3pt(points[one_array[0]], points[i], points[one_array[1]]) >=0 :
+    else:  # 除非就有两个点，则执行第一步
+        if angle3pt(points[one_array[0]], points[i], points[one_array[1]]) >= 0:
             """ 如果两个向量之间的角度大于0，即one_array[0]为顺时针的第一个点 """
             k = one_array[0]
         else:
             k = one_array[1]
-    
-    adjacency[i, k] = adjacency[k, i] = 0
+
+    adjacency_matrix[i, k] = adjacency_matrix[k, i] = 0
     clockwise.append(k)
 
-    one_array = np.where(adjacency[k] == 1)[0]
-    sort_clockwise(adjacency, points, one_array, k, clockwise, pnum)
+    one_array = np.where(adjacency_matrix[k] == 1)[0]
+    sort_clockwise(adjacency_matrix, points, one_array, k, clockwise, pnum)
 
 
 def angle3pt(a, b, c):
@@ -388,8 +410,81 @@ def angle3pt(a, b, c):
     return ang
 
 
-        
+def create_contours(points, pnum, img = None):
+    """ 
+        根据角点的位置，创建一个为正方形的轮廓，假设边长是：10 
+        contours : 第一维为 pnum 个角点；第二维为正方形 4 个顶点；第三维为正方形每个顶点的坐标。
+        因为 OpenCV 创建轮廓方法：contours = [numpy.array([[1,1],[10,50],[50,50]], dtype=numpy.int32)]
+        正方形的四个顶点都是由上到下，由左上->右上->右下->左下
+    """
 
+    contours = np.zeros((pnum, 4, 2), dtype=np.int32)
+
+    contours[0][0] = [32, 10]  # 第 0 个正方形的 第1个顶点的坐标。
+
+    length = 20 / 2  # 假设即将创建正方形轮廓的边长为 10
+
+    index = 0
+    for point in points:
+        col = point[0]
+        row = point[1]
+        contours[index][0] = [col-length, row-length]
+        contours[index][1] = [col+length, row-length]
+        contours[index][2] = [col+length, row+length]
+        contours[index][3] = [col-length, row+length]
+        index +=1
+
+    if(img):
+        copy_img = img.copy()
+        for cnt in contours:
+            cv.drawContours(copy_img, [cnt], 0 , (0,255,255),-1)
+        cv.imshow("create_contours", copy_img)
+
+    print(contours)
+    return contours
+
+def IsLineInContours(line, contour):
+    """ 判断直线是否在轮廓内，其实是直线是两个坐标点组成的，其实就是判断直线内的两个坐标点分别在哪两个轮廓内 """
+
+    # print(line) # 打印出line的两个点
+    # point_0 = np.array(line[0][0], line[0][1])
+    # point_1 = [line[0][2], line[0][3]]
+    result1 = cv.pointPolygonTest(contour, (line[0][0], line[0][1]), False)
+    result2 = cv.pointPolygonTest(contour, (line[0][2], line[0][3]), False)
+
+    if result1 or result2:
+        return True
+    else:
+        return True
+
+def TheContourContainsLine(line, contours):
+    print("直线：" , line)
+
+    for cnt in contours:
+        result1 = cv.pointPolygonTest(cnt, (line[0][0], line[0][1]), False)
+        result2 = cv.pointPolygonTest(cnt, (line[0][2], line[0][3]), False)
+        print(str(result1) + ', ' + str(result2) )
+
+    cnum = len(contours)
+    connected_array = np.zeros((1,2), dtype = np.int32)
+
+    index = 0
+    # num = 0
+
+    for i in range(cnum):
+        result1 = cv.pointPolygonTest(contours[i], (line[0][0], line[0][1]), False)
+        result2 = cv.pointPolygonTest(contours[i], (line[0][2], line[0][3]), False)
+
+        if result1:
+            connected_array[index][0] = i
+        elif result2:
+            connected_array[index][1] = i
+
+        # num +=1
+        # if num == 8:
+        #     index += 1
+        #     num = 0
+    print("相连点：" , connected_array)
 
 # src = cv.imread("./cad3.jpg")
 # cv.namedWindow("CAD", cv.WINDOW_AUTOSIZE)
@@ -400,8 +495,12 @@ def angle3pt(a, b, c):
 # find_contours(src)
 src = cv.imread('./左转90度.jpg')
 # rotate_picture(src)
-line_detect(src)
-# point_detection(src)
+lines = line_detect(src)
+print(lines)
+points, pnum = point_detection(src)
+# contours = create_contours(points, pnum, src)
+adjacency_matrix = create_adjacency_matrix(points, pnum, lines)
+# clockwise = points_sort(adjacency_matrix, points, pnum)
 
 
 cv.waitKey(0)
