@@ -333,27 +333,18 @@ def create_adjacency_matrix(points, pnum, lines):
 
     contours = create_contours(points, pnum)
     
-    array = []
-    index = 0
+    connected_array = []
     """ 判断角点之间是否相连 """
-    # for line in lines:
-    #     for cnt in contours:
-    #         if IsLineInContours(line, cnt):
-    #             array.append(index)
-    #             index +=1
-    # print(array)
     for line in lines:
-        TheContourContainsLine(line, contours)
-
-    # 下面就先假设邻接矩阵已经完成
-    adjacency_matrix[0, 1] = adjacency_matrix[0,
-                                              6] = adjacency_matrix[1, 0] = adjacency_matrix[6, 0] = 1
-    adjacency_matrix[1, 2] = adjacency_matrix[2, 1] = 1
-    adjacency_matrix[2, 3] = adjacency_matrix[3, 2] = 1
-    adjacency_matrix[3, 4] = adjacency_matrix[4, 3] = 1
-    adjacency_matrix[4, 5] = adjacency_matrix[5, 4] = 1
-    adjacency_matrix[5, 7] = adjacency_matrix[7, 5] = 1
-    adjacency_matrix[6, 7] = adjacency_matrix[7, 6] = 1
+        i = TheContourContainsLine(line, contours)
+        connected_array.append(i)
+    connected_array = np.asarray(connected_array)
+    print(connected_array)
+    
+    # 根据 TheContourContainsLine返回的矩阵数组，构造邻接矩阵
+    for array in connected_array:
+        adjacency_matrix[array[0][0], array[0][1]] = 1
+        adjacency_matrix[array[0][1], array[0][0]] = 1
     print("邻接矩阵：\n", adjacency_matrix)
 
     return adjacency_matrix
@@ -443,19 +434,6 @@ def create_contours(points, pnum, img = None):
     print(contours)
     return contours
 
-def IsLineInContours(line, contour):
-    """ 判断直线是否在轮廓内，其实是直线是两个坐标点组成的，其实就是判断直线内的两个坐标点分别在哪两个轮廓内 """
-
-    # print(line) # 打印出line的两个点
-    # point_0 = np.array(line[0][0], line[0][1])
-    # point_1 = [line[0][2], line[0][3]]
-    result1 = cv.pointPolygonTest(contour, (line[0][0], line[0][1]), False)
-    result2 = cv.pointPolygonTest(contour, (line[0][2], line[0][3]), False)
-
-    if result1 or result2:
-        return True
-    else:
-        return True
 
 def TheContourContainsLine(line, contours):
     print("直线：" , line)
@@ -468,23 +446,17 @@ def TheContourContainsLine(line, contours):
     cnum = len(contours)
     connected_array = np.zeros((1,2), dtype = np.int32)
 
-    index = 0
-    # num = 0
-
     for i in range(cnum):
         result1 = cv.pointPolygonTest(contours[i], (line[0][0], line[0][1]), False)
         result2 = cv.pointPolygonTest(contours[i], (line[0][2], line[0][3]), False)
 
-        if result1:
-            connected_array[index][0] = i
-        elif result2:
-            connected_array[index][1] = i
+        if result1 == 1.0:
+            connected_array[0][0] = i
+        elif result2 == 1.0:
+            connected_array[0][1] = i
 
-        # num +=1
-        # if num == 8:
-        #     index += 1
-        #     num = 0
     print("相连点：" , connected_array)
+    return connected_array
 
 # src = cv.imread("./cad3.jpg")
 # cv.namedWindow("CAD", cv.WINDOW_AUTOSIZE)
@@ -500,7 +472,7 @@ print(lines)
 points, pnum = point_detection(src)
 # contours = create_contours(points, pnum, src)
 adjacency_matrix = create_adjacency_matrix(points, pnum, lines)
-# clockwise = points_sort(adjacency_matrix, points, pnum)
+clockwise = points_sort(adjacency_matrix, points, pnum)
 
 
 cv.waitKey(0)
