@@ -5,7 +5,7 @@ import math
 
 
 def big_image_binary(image):
-    """  
+    """
         超大图像二值化
     """
     cw = 256
@@ -23,7 +23,7 @@ def big_image_binary(image):
 
 
 def max_area_object_measure(image):
-    """  
+    """
         找出最大元素，用红线矩形标出来
     """
     binary = big_image_binary(image)
@@ -47,7 +47,7 @@ def max_area_object_measure(image):
 
 
 def cut_picture_roi(image):
-    """ 
+    """
         裁剪图片的roi：
             选择外围的轮廓进行裁剪
     """
@@ -332,15 +332,15 @@ def create_adjacency_matrix(points, pnum, lines):
     adjacency_matrix = np.zeros((pnum, pnum), dtype=np.int8)  # 邻接矩阵
 
     contours = create_contours(points, pnum)
-    
+
     connected_array = []
     """ 判断角点之间是否相连 """
     for line in lines:
         i = TheContourContainsLine(line, contours)
         connected_array.append(i)
     connected_array = np.asarray(connected_array)
-    print(connected_array)
-    
+    print("所有相连点组合：\n", connected_array)
+
     # 根据 TheContourContainsLine返回的矩阵数组，构造邻接矩阵
     for array in connected_array:
         adjacency_matrix[array[0][0], array[0][1]] = 1
@@ -361,11 +361,21 @@ def points_sort(adjacency_matrix, points, pnum):
                    0, clockwise, pnum)  # 第0行开始
     clockwise = np.asarray(clockwise)
     print("顺时针点排序后：", clockwise)
-    return clockwise
+
+    i = 0
+    clockwise_points = np.zeros((8,2), dtype=np.int32) # 顺时针排序后输出点的坐标,
+    for sort in clockwise:
+        print("排序后 第 %d" % i + " 点： col: ", points[sort][0], ", row: ", points[sort][1])
+        clockwise_points[i] = points[sort]
+        i += 1
+    
+    print(clockwise_points)
+
+    return clockwise, clockwise_points
 
 
 def sort_clockwise(adjacency_matrix, points, one_array, i, clockwise, pnum):
-    """ 
+    """
     递归：
         角点顺时针排序算法，基于邻接矩阵的遍历算法:
         1、第一步，先找出与第0点的两个点（即第1点和第6点），哪个是顺时针最先连接的。
@@ -401,9 +411,9 @@ def angle3pt(a, b, c):
     return ang
 
 
-def create_contours(points, pnum, img = None):
-    """ 
-        根据角点的位置，创建一个为正方形的轮廓，假设边长是：10 
+def create_contours(points, pnum, img=None):
+    """
+        根据角点的位置，创建一个为正方形的轮廓，假设边长是：10
         contours : 第一维为 pnum 个角点；第二维为正方形 4 个顶点；第三维为正方形每个顶点的坐标。
         因为 OpenCV 创建轮廓方法：contours = [numpy.array([[1,1],[10,50],[50,50]], dtype=numpy.int32)]
         正方形的四个顶点都是由上到下，由左上->右上->右下->左下
@@ -423,12 +433,12 @@ def create_contours(points, pnum, img = None):
         contours[index][1] = [col+length, row-length]
         contours[index][2] = [col+length, row+length]
         contours[index][3] = [col-length, row+length]
-        index +=1
+        index += 1
 
     if(img):
         copy_img = img.copy()
         for cnt in contours:
-            cv.drawContours(copy_img, [cnt], 0 , (0,255,255),-1)
+            cv.drawContours(copy_img, [cnt], 0, (0, 255, 255), -1)
         cv.imshow("create_contours", copy_img)
 
     print(contours)
@@ -436,27 +446,60 @@ def create_contours(points, pnum, img = None):
 
 
 def TheContourContainsLine(line, contours):
-    print("直线：" , line)
+    print("直线：", line)
 
     for cnt in contours:
         result1 = cv.pointPolygonTest(cnt, (line[0][0], line[0][1]), False)
         result2 = cv.pointPolygonTest(cnt, (line[0][2], line[0][3]), False)
-        print(str(result1) + ', ' + str(result2) )
+        print(str(result1) + ', ' + str(result2))
 
     cnum = len(contours)
-    connected_array = np.zeros((1,2), dtype = np.int32)
+    connected_array = np.zeros((1, 2), dtype=np.int32)
 
     for i in range(cnum):
-        result1 = cv.pointPolygonTest(contours[i], (line[0][0], line[0][1]), False)
-        result2 = cv.pointPolygonTest(contours[i], (line[0][2], line[0][3]), False)
+        result1 = cv.pointPolygonTest(
+            contours[i], (line[0][0], line[0][1]), False)
+        result2 = cv.pointPolygonTest(
+            contours[i], (line[0][2], line[0][3]), False)
 
         if result1 == 1.0:
             connected_array[0][0] = i
         elif result2 == 1.0:
             connected_array[0][1] = i
 
-    print("相连点：" , connected_array)
+    print("相连点：", connected_array)
     return connected_array
+
+
+def points_exchange_row_and_col(points, pnum):
+    """ 
+        交换点的横纵坐标，并且将第0点的坐标调整为（0,0）
+    """
+    zero_col = points[0][0]
+    zero_row = points[0][1]    
+
+    for i in range(pnum):
+        # 先将所有点都以第 0 点作为（0,0）的法则来进行调整
+        points[i][0] -= zero_col 
+        points[i][1] = zero_row - points[i][1]
+
+        # 然后将横纵坐标交换
+        points[i][0], points[i][1] = points[i][1], points[i][0]
+
+    print("角点坐标整点后：\n", points)
+
+    return points
+
+
+def points_to_real_distance(points, pnum, ratio, dot_pitch):
+    """ 将角点的坐标，根据图纸的尺寸比例，进行转化为实际的坐标 """
+   
+    real_points = points.astype(np.float)
+    real_points *= ratio * dot_pitch
+
+    print(real_points)
+    return real_points
+
 
 # src = cv.imread("./cad3.jpg")
 # cv.namedWindow("CAD", cv.WINDOW_AUTOSIZE)
@@ -472,8 +515,8 @@ print(lines)
 points, pnum = point_detection(src)
 # contours = create_contours(points, pnum, src)
 adjacency_matrix = create_adjacency_matrix(points, pnum, lines)
-clockwise = points_sort(adjacency_matrix, points, pnum)
-
-
+clockwise, clockwise_points = points_sort(adjacency_matrix, points, pnum)
+points = points_exchange_row_and_col(clockwise_points, pnum)
+points = points_to_real_distance(points, pnum, 50, 0.1815)
 cv.waitKey(0)
 cv.destroyAllWindows()
